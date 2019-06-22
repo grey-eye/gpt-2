@@ -129,14 +129,17 @@ def block(x, scope, *, past, hparams):
         x = x + m
         return x, present
 
+
 def past_shape(*, hparams, batch_size=None, sequence=None):
     return [batch_size, hparams.n_layer, 2, hparams.n_head, sequence, hparams.n_embd // hparams.n_head]
+
 
 def expand_tile(value, size):
     """Add a new axis of given size."""
     value = tf.convert_to_tensor(value, name='value')
     ndims = value.shape.ndims
     return tf.tile(tf.expand_dims(value, axis=0), [size] + [1]*ndims)
+
 
 def positions_for(tokens, past_length):
     batch_size = tf.shape(tokens)[0]
@@ -145,8 +148,9 @@ def positions_for(tokens, past_length):
 
 
 def model(hparams, X, past=None, scope='model', reuse=False):
+    results = {}
     with tf.variable_scope(scope, reuse=reuse):
-        results = {}
+
         batch, sequence = shape_list(X)
 
         wpe = tf.get_variable('wpe', [hparams.n_ctx, hparams.n_embd],
@@ -171,4 +175,13 @@ def model(hparams, X, past=None, scope='model', reuse=False):
         logits = tf.matmul(h_flat, wte, transpose_b=True)
         logits = tf.reshape(logits, [batch, sequence, hparams.n_vocab])
         results['logits'] = logits
-        return results
+
+    with tf.variable_scope('classification_head', reuse=reuse):
+        logits = results['logits']
+        dropout = tf.nn.dropout(logits, keep_prob=0.9)
+        fc_2 = tf.layers.dense(dropout, 5)
+        avg_logits = tf.math.reduce_mean(fc_2, axis=1)
+        results['avg_logits'] = avg_logits
+
+
+    return results
