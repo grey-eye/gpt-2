@@ -1,4 +1,6 @@
-# gpt-2
+# gpt-2 Classifier
+
+GPT-2 modified with a classification head (e.g. for sentiment analysis).
 
 Code from the paper ["Language Models are Unsupervised Multitask Learners"](https://d4mucfpksywv.cloudfront.net/better-language-models/language-models.pdf).
 
