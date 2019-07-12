@@ -176,12 +176,4 @@ def model(hparams, X, past=None, scope='model', reuse=False):
         logits = tf.reshape(logits, [batch, sequence, hparams.n_vocab])
         results['logits'] = logits
 
-    with tf.variable_scope('classification_head', reuse=reuse):
-        logits = results['logits']
-        dropout = tf.nn.dropout(logits, keep_prob=0.9)
-        fc_2 = tf.layers.dense(dropout, 5)
-        avg_logits = tf.math.reduce_mean(fc_2, axis=1)
-        results['avg_logits'] = avg_logits
-
-
     return results
