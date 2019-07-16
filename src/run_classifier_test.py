@@ -5,6 +5,7 @@ import model
 import encoder
 import pandas as pd
 import numpy as np
+import json
 
 def generate_data(data_dir, len_seq, mode='train'):
     def pad(encoding):
@@ -39,7 +40,9 @@ if __name__ == '__main__':
         X = tf.placeholder(tf.int32, shape=(args.batch_size, args.len_seq), name='sequence')
         y = tf.placeholder(tf.float32, shape=(args.batch_size, 1), name='sentiment')
         hparams = model.default_hparams()
-        net = model.model(hparams, X)
+        with open(os.path.join(args.model_dir, args.model_name, 'hparams.json')) as f:
+            hparams.override_from_dict(json.load(f))
+        net = model.model(hparams, X, past=None, reuse=tf.AUTO_REUSE)
         logits = net['logits']
         dropout = tf.nn.dropout(logits, keep_prob=0.9)
         avg_logits = tf.math.reduce_mean(dropout, axis=1)
@@ -50,7 +53,7 @@ if __name__ == '__main__':
         train_op = optimizer.minimize(loss_op,
                                       global_step=tf.train.get_global_step())
 
-        init_op = tf.initialize_all_variables()
+        init_op = tf.initializers.global_variables()
 
         sess.run(init_op)
 
@@ -59,7 +62,7 @@ if __name__ == '__main__':
         for i in range(100):
             features, label = next(generator)
             features = np.expand_dims(features, axis=0).tolist()
-            label = np.expand_dims(np.expand_dims(label, axis=0),axis=0)
+            label = np.reshape(label, (1,1))
             loss, _ = sess.run([loss_op, train_op], feed_dict={X: features,
                                                                y:label})
             print(loss)

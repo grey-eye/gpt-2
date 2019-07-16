@@ -1,4 +1,5 @@
 import argparse
+import json
 import tensorflow as tf
 import os
 import model
@@ -39,6 +40,9 @@ def get_feature_columns(batch_size, len_seq):
 
 def my_model_fn(features, labels, mode, params):
     hparams = model.default_hparams()
+    with open(os.path.join(args.model_dir, args.model_name, 'hparams.json')) as f:
+        hparams.override_from_dict(json.load(f))
+
     features.set_shape([params['batch_size'], params['len_seq']])
 
     net = model.model(hparams, features)
@@ -69,7 +73,7 @@ def run_classifier(data_dir, batch_size, len_seq):
         params={'batch_size': batch_size, 'len_seq': len_seq})
     classifier.train(lambda: train_input_fn(generate_data, data_dir, len_seq,
                                             batch_size),
-                     steps=100)
+                     steps=1000)
 
 if __name__ == '__main__':
     #tf.enable_eager_execution()
@@ -82,8 +86,8 @@ if __name__ == '__main__':
                         'directory containing model')
     parser.add_argument('--model_name', required=False, default='117M',
                         help='Name of model')
-    parser.add_argument('--batch_size', required=False, default=32,
-                        help='Sets the batch size')
+    parser.add_argument('--batch_size', required=False, default=8,
+                        help='Sets the batch size', type=int)
 
     args = parser.parse_args()
     ds = train_input_fn(generate_data, args.data_dir, args.len_seq)
