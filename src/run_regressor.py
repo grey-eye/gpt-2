@@ -1,3 +1,4 @@
+import functools
 import argparse
 import json
 import tensorflow as tf
@@ -28,31 +29,20 @@ def generate_data(mode):
         yield features, label
 
 
-def input_train_fn(params):
+def input_fn(params, mode):
     generator_fn = params['generator_fn']
-    it = generator_fn(mode)
     ds = tf.data.Dataset.from_generator(generator_fn, (tf.int32, tf.float32),
-                                        None, ('train',))
-    ds = ds.shuffle(1000).repeat().batch(args.batch_size)
-    return ds
-
-def input_eval_fn(params):
-    generator_fn = params['generator_fn']
-    it = generator_fn(mode)
-    ds = tf.data.Dataset.from_generator(generator_fn, (tf.int32, tf.float32),
-                                        None, ('eval',))
+                                        None, (mode,))
     ds = ds.shuffle(1000).repeat().batch(args.batch_size)
     return ds
 
 
-
-def my_model_fn(features, labels, params):
+def my_model_fn(features, labels, params, mode):
     hparams = model.default_hparams()
     with open(os.path.join(args.base_model_dir, args.base_model_name, 'hparams.json')) as f:
         hparams.override_from_dict(json.load(f))
 
     features.set_shape([args.batch_size, args.len_seq])
-    mode = params['mode']
 
     net = model.model(hparams, features)
     logits = net['logits']
@@ -71,7 +61,7 @@ def my_model_fn(features, labels, params):
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
     if mode == tf.estimator.ModeKeys.EVAL:
         return tf.estimator.EstimatorSpec(mode, loss=loss,
-                                          eval_metrics_ops=metrics)
+                                          eval_metric_ops=metrics)
     if mode == tf.estimator.ModeKeys.TRAIN:
         return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
@@ -111,8 +101,8 @@ def train_regressor():
         config=tpu_config
     )
 
-    regressor.train(input_train_fn, steps=args.num_steps)
-    regressor.evaluate(input_eval_fn, steps=args.num_steps)
+    regressor.train(functools.partial(input_fn, mode='train'), steps=args.num_steps)
+    regressor.evaluate(functools.partial(input_fn, mode='eval'), steps=args.num_steps)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
