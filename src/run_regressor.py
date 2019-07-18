@@ -60,8 +60,7 @@ def my_model_fn(features, labels, params, mode):
         predictions = {'prediction': predictions}
         return tf.estimator.EstimatorSpec(mode, predictions=predictions)
     if mode == tf.estimator.ModeKeys.EVAL:
-        return tf.estimator.EstimatorSpec(mode, loss=loss,
-                                          eval_metric_ops=metrics)
+        return tf.estimator.EstimatorSpec(mode, loss=loss)
     if mode == tf.estimator.ModeKeys.TRAIN:
         return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
